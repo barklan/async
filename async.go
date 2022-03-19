@@ -1,7 +1,9 @@
-package async // import "code.nkcmr.net/async"
+package async
 
 import (
 	"context"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // Promise is an abstract representation of a value that might eventually be
@@ -81,26 +83,23 @@ func Reject[T any](err error) Promise[T] {
 }
 
 // All takes a slice of promises and will await the result of all of the
-// specified promises. If any promise should return an error, the wh
+// specified promises. If any promise should return an error, the whole result
+// slice is nil.
 func All[T any](ctx context.Context, promises []Promise[T]) ([]T, error) {
-	var cancel context.CancelFunc
-	ctx, cancel = context.WithCancel(ctx)
-	defer cancel()
+	g, ctx := errgroup.WithContext(ctx)
 	out := make([]T, len(promises))
-	errc := make(chan error, len(out))
-	waiter := func(i int, p Promise[T]) {
-		var err error
-		out[i], err = p.Await(ctx)
-		errc <- err
-	}
 	for i := range out {
-		go waiter(i, promises[i])
+		i := i
+		g.Go(func() error {
+			result, err := promises[i].Await(ctx)
+			if err == nil {
+				out[i] = result
+			}
+			return err
+		})
 	}
-	for i := 0; i < len(out); i++ {
-		if err := <-errc; err != nil {
-			cancel()
-			return nil, err
-		}
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }

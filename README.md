@@ -1,3 +1,5 @@
+### Fork that uses [`golang.org/x/sync`](https://pkg.go.dev/golang.org/x/sync/errgroup) internally. API is not changed.
+
 # async go
 
 a prototype of "promises" in go1.18.
