@@ -3,25 +3,33 @@
 **Uses [`golang.org/x/sync/errgroup`](https://pkg.go.dev/golang.org/x/sync/errgroup) internally. API is not changed.**
 
 ```go
+package main
+
 import (
-    "context"
-    "github.com/barklan/async"
+	"context"
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/barklan/async"
 )
 
-type MyData struct {/* ... */}
-
-func AsyncFetchData(ctx context.Context, dataID int64) async.Promise[MyData] {
-    return async.NewPromise(func() (MyData, error) {
-        /* ... */
-        return myDataFromRemoteServer, nil
-    })
+type User struct {
+	name string
 }
 
-func DealWithData(ctx context.Context) {
-    myDataPromise := AsyncFetchData(ctx, 451)
-    // do other stuff while operation is not settled
-    // once your ready to wait for data:
-    myData, err := myDataPromise.Await(ctx)
-    if err != nil {/* ... */}
+func main() {
+	promise := async.NewPromise(func() (User, error) {
+		time.Sleep(2 * time.Second)
+		return User{name: "Test"}, nil
+	})
+
+	fmt.Println("do someting else")
+
+	user, err := promise.Await(context.Background())
+	if err != nil {
+		log.Panic(err)
+	}
+	fmt.Println(user)
 }
 ```
